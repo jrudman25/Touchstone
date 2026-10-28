@@ -18,8 +18,12 @@ members = [
 [dependency-groups]
 dev = [
     "cryptography==50.0.2",
+    "django-stubs==6.1.2",
+    "django-stubs-ext==6.1.2",
+    "djangorestframework-stubs==3.18.1",
     "mypy==2.4.0",
     "pytest==9.1.1",
+    "pytest-django==4.14.0",
     "ruff==0.17.1",
 ]
 
@@ -39,17 +43,43 @@ select = ["E", "F", "W", "I", "UP", "B", "C4", "S", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "scripts/tests/*" = ["S101", "S404", "S603", "S607"]
+"**/tests/**" = ["S101", "S105", "S106", "S107"]
+"**/migrations/**" = ["RUF012", "D", "E501"]
 
 [tool.mypy]
 strict = true
 explicit_package_bases = true
+plugins = [
+    "mypy_django_plugin.main",
+    "mypy_drf_plugin.main",
+]
 mypy_path = [
     "packages/evalcore/src",
     "services/api/src",
     "services/records/src",
+    "services/records/tests",
     "services/worker/src",
     "scripts",
 ]
 
+# admin.ModelAdmin is not runtime-subscriptable (django-stubs-ext is a dev-only
+# dependency), so admin classes stay unparameterized.
+[[tool.mypy.overrides]]
+module = "*.admin"
+disable_error_code = ["type-arg"]
+
+[tool.django-stubs]
+django_settings_module = "records_test_settings"
+
 [tool.pytest.ini_options]
-testpaths = ["scripts/tests"]
+testpaths = ["scripts/tests", "services/records/tests", "packages/evalcore/tests"]
+addopts = "--import-mode=importlib"
+pythonpath = [
+    "packages/evalcore/src",
+    "services/api/src",
+    "services/records/src",
+    "services/records/tests",
+    "services/worker/src",
+    "scripts",
+]
+DJANGO_SETTINGS_MODULE = "records_test_settings"

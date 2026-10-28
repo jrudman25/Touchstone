@@ -25,3 +25,6 @@ coverage/
 
 # Local evidence and scratch logs
 .artifacts/
+
+# Django collectstatic output
+services/records/staticfiles/

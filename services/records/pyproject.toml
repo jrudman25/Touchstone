@@ -3,7 +3,15 @@ name = "records"
 version = "0.1.0"
 description = "Django + DRF service owning users, organizations, projects, prompts, datasets, and configs."
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "django==6.1.2",
+    "djangorestframework==3.18.3",
+    "djangorestframework-simplejwt[crypto]==5.5.1",
+    "drf-spectacular==0.30.0",
+    "psycopg[binary]==3.3.6",
+    "uvicorn==0.54.0",
+    "whitenoise==6.12.0",
+]
 
 [dependency-groups]
 dev = ["evalcore"]

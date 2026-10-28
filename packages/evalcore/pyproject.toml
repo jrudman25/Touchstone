@@ -3,7 +3,10 @@ name = "evalcore"
 version = "0.1.0"
 description = "Shared schemas, provider clients, scorers, Mongo helpers, and JWT verification."
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "pydantic==2.14.1",
+    "pyjwt==2.15.1",
+]
 
 [build-system]
 requires = ["hatchling==1.32.4"]
