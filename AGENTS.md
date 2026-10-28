@@ -4,7 +4,7 @@ Guidance for coding agents working on the LLM Evaluation Dashboard. `SPEC.md` is
 
 ## Status
 
-Pre-implementation. The repository contains only docs and the MIT `LICENSE`. Layout and commands below are the agreed target; update this file with real commands as each piece is scaffolded and verified. `TODO.md` is the owner's private task list and is git-excluded; do not reference it from committed files.
+Checkpoint A (workspace and tooling) is done: the uv workspace with the `evalcore`, `records`, `eval-api`, and `eval-worker` packages, the Compose dev stores (`postgres`, `mongo`, `redis`), the dev JWT key generator, and the CI workflow exist and pass their gates. No application code exists yet; the packages are empty scaffolds, and `web/` does not exist. The layout below remains the agreed target for what is not built yet. `TODO.md` is the owner's private task list and is git-excluded; do not reference it from committed files.
 
 ## Git workflow
 
@@ -107,4 +107,13 @@ Shared logic used by both FastAPI and the worker (schemas, providers, scorers, M
 
 ## Commands
 
-Not yet available. Add install, dev, test, lint, type-check, and build commands here once they exist and have been run successfully.
+Verified on Windows (Git Bash) with system Python 3.13.5. `uv` is pinned at 0.13.4 and installed user-local (`py -3.13 -m pip install --user uv==0.13.4`); `python -m uv` works without any PATH change, and the `uv`/`uvx` shims work once the user Scripts directory is on PATH. Substitute `uv` for `python -m uv` when the shim is available.
+
+- **Sync the workspace** (creates `.venv`, builds all four members): `python -m uv sync --all-packages --locked`
+- **Lockfile**: regenerate with `python -m uv lock`, verify freshness with `python -m uv lock --check`
+- **Lint**: `python -m uv run ruff check .` and `python -m uv run ruff format --check .` (fix with `ruff check --fix` / `ruff format`)
+- **Types**: `python -m uv run mypy .`
+- **Tests**: `python -m uv run pytest` (only `scripts/tests` exists so far; per-service tests come with Checkpoint B)
+- **Dev JWT keypair**: `python -m uv run python scripts/generate_dev_keys.py` writes `.secrets/jwt/private.pem` and `public.pem`, and refuses to overwrite existing files
+- **Data stores**: `cp .env.example .env`, fill in the placeholders, then `docker compose up -d --wait`. Check with `docker compose ps`. Postgres, Mongo, and Redis are published on `127.0.0.1` ports 5432, 27017, and 6379.
+- **Environment**: Compose reads `.env` automatically; native commands load it explicitly with `python -m uv run --env-file .env <command>`. There is no dotenv dependency.

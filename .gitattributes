@@ -1,0 +1,3 @@
+# Store text files with LF in the repository and check them out with LF on
+# every platform, so Windows working copies match Linux CI and containers.
+* text=auto eol=lf

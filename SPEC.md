@@ -102,6 +102,8 @@ Creating a version assigns `number` as the template's highest number plus one on
 
 Writes validate tenant consistency: every object a record references (a dataset's project, a model config's provider, a scorer's judge model) must belong to the same organization as the record, and the caller must be an `editor` or `owner` there.
 
+Tenant moves are forbidden. An existing record can never change organizations, directly or through reparenting: a `Project`'s `organization` never changes, a `ModelConfig` cannot be repointed to another organization's `ProviderConfig`, and no other update may make a record or one of its references cross a tenant boundary. This holds on every supported write path (API and admin alike); cross-tenant transfers are unsupported. Same-organization edits remain allowed, with the reference-consistency validation above re-applied on save.
+
 ## MongoDB collections
 
 Three collections hold everything a run produces, and each scored output is its own document so a run can grow large without nearing the 16 MB document limit.
@@ -445,6 +447,7 @@ Resolved after conversion from the source document. Each is written into the rel
 38. **Dataset `row_count`:** read-only in the normal API; a dedicated Phase 2 action sets it once while null, 409 afterwards.
 39. **`baseline_run_id`:** nullable 24-character string holding a run `ObjectId` in hex.
 40. **JWT key mounts:** `records` holds the private and public keys; `api` and `worker` hold only the public key.
+41. **No tenant moves:** existing records cannot change organizations, directly or through reparenting, on any API or admin write path; same-organization edits stay allowed with reference consistency revalidated.
 
 ## Open questions
 
