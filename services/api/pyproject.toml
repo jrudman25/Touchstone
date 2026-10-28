@@ -1,0 +1,16 @@
+[project]
+name = "eval-api"
+version = "0.1.0"
+description = "FastAPI service for the run API, SSE stream, results paging, compare, upload, and playground."
+requires-python = ">=3.13,<3.14"
+dependencies = ["evalcore"]
+
+[tool.uv.sources]
+evalcore = { workspace = true }
+
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eval_api"]

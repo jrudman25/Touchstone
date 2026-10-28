@@ -1,0 +1,19 @@
+[project]
+name = "records"
+version = "0.1.0"
+description = "Django + DRF service owning users, organizations, projects, prompts, datasets, and configs."
+requires-python = ">=3.13,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = ["evalcore"]
+
+[tool.uv.sources]
+evalcore = { workspace = true }
+
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/records"]
