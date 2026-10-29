@@ -89,7 +89,7 @@ There is no Django table for runs. Every run document in MongoDB stores the Djan
 
 FastAPI fetches these records by calling Django REST framework endpoints with the caller's own JWT, so Django applies the same organization scoping and no service-to-service secret is needed.
 
-Users are a custom user model (subclass of `AbstractUser`) from the first migration. Organizations are created through Django admin or `seed_dev` only; the API lets members read their organizations and owners update them. Members can read their organization's memberships; owners add memberships for existing users, change roles, and remove memberships through the API. Any change that would leave an organization with no `owner` membership (removing or demoting the last owner) is rejected with 400.
+Users are a custom user model (subclass of `AbstractUser`) from the first migration. Organizations are created through Django admin or `seed_dev` only; the API lets members read their organizations and owners update them. Members can read their organization's memberships; owners add memberships for existing users, change roles, and remove memberships through the API. Any change that would leave an organization with no `owner` membership (removing or demoting the last owner) is rejected with 400. Django admin enforces the same rule: demoting the last owner fails form validation, and deleting the last owner's membership (singly or in bulk) or deleting a user who is an organization's only owner is shown as protected on the delete confirmation page. Deleting the organization itself still removes its memberships. Deactivating the only owner (`is_active=False`) is allowed, and direct ORM or shell deletes are not guarded.
 
 `ScorerConfig.params` is validated per kind, and unknown keys are rejected:
 
@@ -445,7 +445,7 @@ Resolved after conversion from the source document. Each is written into the rel
 34. **Prompt version API:** create and read only; the server assigns the next `number`.
 35. **Ports:** Vite on `5173`, Caddy published on `8080`, Django `8000` and FastAPI `8001` natively (the same ports inside the `app` profile containers); store ports are published on `127.0.0.1` only.
 36. **Scorer params:** validated per kind; rule-based scorers take `{}` and read `expected`; `llm_judge` requires `rubric`, `judge_prompt`, and a same-organization `judge_model_config_id`.
-37. **Memberships:** `(user, organization)` unique; owners add, re-role, and remove memberships; the last owner cannot be removed or demoted.
+37. **Memberships:** `(user, organization)` unique; owners add, re-role, and remove memberships; the last owner cannot be removed or demoted through the API or Django admin, including by deleting the user.
 38. **Dataset `row_count`:** read-only in the normal API; a dedicated Phase 2 action sets it once while null, 409 afterwards.
 39. **`baseline_run_id`:** nullable 24-character string holding a run `ObjectId` in hex.
 40. **JWT key mounts:** `records` holds the private and public keys; `api` and `worker` hold only the public key.

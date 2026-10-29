@@ -341,7 +341,13 @@ def test_dataset_same_org_reparent_allowed(dataset: Dataset, same_org_project: P
     assert dataset.project_id == same_org_project.pk
 
 
-def test_membership_role_change_allowed(membership: Membership) -> None:
+def test_membership_role_change_allowed(membership: Membership, organization: Organization) -> None:
+    # A second owner keeps the org compliant while this owner is demoted.
+    Membership.objects.create(
+        user=User.objects.create_user(username="bob", password="pw-12345"),
+        organization=organization,
+        role="owner",
+    )
     membership.role = "editor"
     membership.full_clean()
     membership.save()

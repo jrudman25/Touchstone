@@ -1,6 +1,7 @@
 """User, Organization, and Membership models."""
 
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from records.tenancy import enforce_immutable_fk
@@ -46,6 +47,17 @@ class Membership(models.Model):
         # Tenant moves are forbidden: neither side of a membership may change.
         enforce_immutable_fk(self, "user")
         enforce_immutable_fk(self, "organization")
+        self._enforce_last_owner()
+
+    def _enforce_last_owner(self) -> None:
+        # Imported here: ownership.py imports this model.
+        from records.accounts.ownership import LAST_OWNER_MESSAGE, is_last_owner
+
+        if self.pk is None or self.role == self.Role.OWNER:
+            return
+        stored = type(self)._default_manager.filter(pk=self.pk).first()
+        if stored is not None and stored.role == self.Role.OWNER and is_last_owner(self):
+            raise ValidationError({"role": LAST_OWNER_MESSAGE})
 
     def __str__(self) -> str:
         return f"{self.user} @ {self.organization} ({self.role})"
