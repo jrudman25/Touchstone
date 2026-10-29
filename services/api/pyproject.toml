@@ -3,7 +3,11 @@ name = "eval-api"
 version = "0.1.0"
 description = "FastAPI service for the run API, SSE stream, results paging, compare, upload, and playground."
 requires-python = ">=3.13,<3.14"
-dependencies = ["evalcore"]
+dependencies = [
+    "evalcore",
+    "fastapi==0.159.1",
+    "uvicorn==0.54.0",
+]
 
 [tool.uv.sources]
 evalcore = { workspace = true }

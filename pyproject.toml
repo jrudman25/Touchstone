@@ -21,6 +21,7 @@ dev = [
     "django-stubs==6.1.2",
     "django-stubs-ext==6.1.2",
     "djangorestframework-stubs==3.18.1",
+    "httpx==0.28.1",
     "mypy==2.4.0",
     "pytest==9.1.1",
     "pytest-django==4.14.0",
@@ -72,7 +73,12 @@ disable_error_code = ["type-arg"]
 django_settings_module = "records_test_settings"
 
 [tool.pytest.ini_options]
-testpaths = ["scripts/tests", "services/records/tests", "packages/evalcore/tests"]
+testpaths = [
+    "scripts/tests",
+    "services/api/tests",
+    "services/records/tests",
+    "packages/evalcore/tests",
+]
 addopts = "--import-mode=importlib"
 pythonpath = [
     "packages/evalcore/src",
