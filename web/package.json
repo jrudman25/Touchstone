@@ -1,0 +1,43 @@
+{
+  "name": "touchstone-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24.11 <25"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint",
+    "lint:vue": "eslint .",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "generate:api": "python -m uv run python ../scripts/export_openapi.py && openapi-typescript ../.artifacts/openapi/records.json -o src/api/generated/records.ts && openapi-typescript ../.artifacts/openapi/eval.json -o src/api/generated/eval.ts"
+  },
+  "dependencies": {
+    "@tanstack/vue-query": "5.104.5",
+    "@tanstack/vue-table": "9.3.1",
+    "chart.js": "4.5.1",
+    "openapi-fetch": "0.17.0",
+    "pinia": "4.1.0",
+    "vue": "3.5.44",
+    "vue-router": "5.4.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "8.72.0",
+    "@vitejs/plugin-vue": "6.0.10",
+    "@vue/test-utils": "2.5.1",
+    "eslint": "10.13.0",
+    "eslint-plugin-oxlint": "1.89.0",
+    "eslint-plugin-vue": "10.11.1",
+    "happy-dom": "21.0.4",
+    "openapi-typescript": "7.13.0",
+    "oxlint": "1.89.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "vitest": "4.1.12",
+    "vue-eslint-parser": "10.4.1",
+    "vue-tsc": "3.3.13"
+  }
+}
