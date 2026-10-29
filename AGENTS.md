@@ -101,6 +101,7 @@ Shared logic used by both FastAPI and the worker (schemas, providers, scorers, M
 - **Testing:** pytest (with `pytest-django` for `records`, `httpx` for FastAPI), Vitest for `web`. Do not add Playwright or Cypress without approval.
 - **Lint and types:** ruff and mypy for Python; ESLint and `vue-tsc` for `web`.
 - **Container images:** pin explicit version tags in `docker-compose.yml` and every Dockerfile `FROM`, never `latest`.
+- **MongoDB stays on 7.0 (`mongo:7.0.43`) in both Compose and CI.** MongoDB 8.x either refuses to start or crashes on Linux kernels 6.19 and newer (SERVER-121912). GitHub's Ubuntu runners use kernel 7.0.x, and 8.0's exemption for kernel 7.0.14+ misreads Ubuntu kernel strings (SERVER-136848). Move to 8.x only after confirming it starts on the CI runner kernel and on Docker Desktop's WSL kernel, and keep Compose and CI on the same version.
 - **New dependencies:** prefer versions published at least 7 days ago; no floating ranges.
 
 ## Testing conventions

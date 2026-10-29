@@ -31,7 +31,9 @@ services:
           memory: 512m
 
   mongo:
-    image: mongo:8.0.32
+    # Keep in sync with CI. MongoDB 8.x refuses to start or crashes on Linux
+    # kernels 6.19+ (SERVER-121912, SERVER-136848); 7.0 is unaffected.
+    image: mongo:7.0.43
     restart: unless-stopped
     # Cap WiredTiger cache; by default it claims ~half the memory it can see.
     command: ["--wiredTigerCacheSizeGB", "0.5"]
