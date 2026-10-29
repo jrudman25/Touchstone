@@ -74,5 +74,6 @@ jobs:
       - name: pytest
         run: uv run pytest
 
-# TODO (Checkpoint C): add ESLint, vue-tsc, Vitest, and the committed
-# OpenAPI-generated-type drift check once web/ exists.
+# TODO (Checkpoint C): add oxlint, ESLint (eslint-plugin-vue template rules
+# only), vue-tsc, Vitest, and the committed OpenAPI-generated-type drift check
+# once web/ exists.

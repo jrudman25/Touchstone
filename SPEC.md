@@ -102,6 +102,8 @@ Creating a version assigns `number` as the template's highest number plus one on
 
 Writes validate tenant consistency: every object a record references (a dataset's project, a model config's provider, a scorer's judge model) must belong to the same organization as the record, and the caller must be an `editor` or `owner` there.
 
+Through the API, rows in organizations the caller does not belong to return 404, and a referenced id outside the caller's organizations is rejected with 400 as nonexistent. Role checks read current memberships, not token claims. Deleting a record that protected rows still depend on (for example, a template with saved versions) returns 409.
+
 Tenant moves are forbidden. An existing record can never change organizations, directly or through reparenting: a `Project`'s `organization` never changes, a `ModelConfig` cannot be repointed to another organization's `ProviderConfig`, and no other update may make a record or one of its references cross a tenant boundary. This holds on every supported write path (API and admin alike); cross-tenant transfers are unsupported. Same-organization edits remain allowed, with the reference-consistency validation above re-applied on save.
 
 ## MongoDB collections

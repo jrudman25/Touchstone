@@ -4,7 +4,7 @@ A local-first dashboard for running a dataset through several prompt versions an
 
 ## Status
 
-Early development. The uv workspace, shared tooling, dev data stores, and CI workflow are in place. The Django records service is in progress: its data model (users, organizations, memberships, projects, prompt templates with immutable versions, datasets, and provider, model, and scorer configs), migrations, admin, validation rules, and JWT authentication (RS256 access tokens with a rotating refresh cookie) exist and are tested. The REST API for the records, the FastAPI service, the worker, and the Vue app are not built yet. See [SPEC.md](SPEC.md) for the full specification.
+Early development. The uv workspace, shared tooling, dev data stores, and CI workflow are in place. The Django records service is in place: its data model (users, organizations, memberships, projects, prompt templates with immutable versions, datasets, and provider, model, and scorer configs), migrations, admin, validation rules, JWT authentication (RS256 access tokens with a rotating refresh cookie), an organization-scoped REST API under `/api/records/` with an OpenAPI schema at `/api/records/schema/`, and a `seed_dev` command exist and are tested. The FastAPI service, the worker, and the Vue app are not built yet. See [SPEC.md](SPEC.md) for the full specification.
 
 ## Planned features
 
@@ -36,7 +36,10 @@ uv sync --all-packages --locked
 uv run python scripts/generate_dev_keys.py   # creates .secrets/jwt/{private,public}.pem
 docker compose up -d --wait                  # postgres, mongo, redis on 127.0.0.1
 uv run --env-file .env python services/records/manage.py migrate
+uv run --env-file .env python services/records/manage.py seed_dev
 ```
+
+`seed_dev` creates a superuser from `DEV_SUPERUSER_USERNAME` and `DEV_SUPERUSER_PASSWORD` in `.env`, plus a `dev` organization, a demo project, and a mock provider and model. It is safe to run again and never changes an existing user's password.
 
 Compose reads `.env` automatically; native commands load it explicitly with `uv run --env-file .env <command>`. Run commands from the repository root. Use `127.0.0.1` rather than `localhost` for store hosts (as in `.env.example`): the stores listen on IPv4 loopback only, and on Windows `localhost` can try IPv6 first and stall.
 
@@ -46,7 +49,7 @@ Start the records service and open the admin at `http://127.0.0.1:8000/api/recor
 uv run --env-file .env uvicorn records.asgi:application --port 8000
 ```
 
-Create an admin account with `uv run --env-file .env python services/records/manage.py createsuperuser` (a `seed_dev` command is planned).
+Sign in to the admin with the seeded superuser. Log in to the API with `POST /api/records/auth/token/`. It returns an access token to send as `Authorization: Bearer <token>`. The API schema is at `http://127.0.0.1:8000/api/records/schema/`.
 
 ## Checks
 
@@ -56,6 +59,7 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy .
 uv run --env-file .env pytest   # records tests use the Compose Postgres (separate test database)
+uv run --env-file .env python services/records/manage.py spectacular --validate --fail-on-warn --file .artifacts/records-openapi.yml
 ```
 
 ## License
