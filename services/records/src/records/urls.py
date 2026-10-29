@@ -1,7 +1,7 @@
 """URL configuration for the records service.
 
 ``health`` is unprefixed and not proxied. Everything browser-facing lives
-under /api/records/ (admin and, in a later step, the DRF API).
+under /api/records/ (admin and the DRF API).
 """
 
 from django.contrib import admin
