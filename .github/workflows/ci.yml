@@ -19,7 +19,9 @@ env:
 
 jobs:
   python:
-    runs-on: ubuntu-latest
+    # Pinned: mongo:8.0.32 refuses to start on Linux kernel 6.19+, and its 7.0.14+
+    # exemption misreads Ubuntu kernel strings (SERVER-121912, SERVER-136848).
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:17.10
