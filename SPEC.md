@@ -183,14 +183,14 @@ Each JSONL line must be an object of this shape:
 { "input": { "question": "What is the capital of France?" }, "expected": "Paris" }
 ```
 
-- `input` (required): an object whose keys fill the prompt's `{{variables}}`. Values are strings, numbers, or booleans.
-- `expected` (optional): a string used by the `exact`, `contains`, and `regex` scorers.
+- `input` (required): an object whose keys fill the prompt's `{{variables}}`. Values are strings, numbers, or booleans, validated strictly: JSON types are preserved (no string-to-number coercion, and booleans and numbers stay distinct), NaN and Infinity are rejected, and `null` values are rejected.
+- `expected` (optional): a string used by the `exact`, `contains`, and `regex` scorers; a non-string, non-null value rejects the line.
 - Any other top-level key, a non-object line, or a missing `input` rejects the upload with the offending line numbers.
 - Whether `input` covers a prompt version's variables is checked at `POST /runs`, since datasets and prompts are created independently. Missing variables reject the run.
 
 Each stored document holds `dataset_id`, `row_index` (0-based line order), `input`, and `expected`.
 
-Datasets are immutable once rows are uploaded, because compare joins runs by `row_index`. A second upload to the same dataset returns 409 (dataset versions remain a stretch goal). `Dataset.row_count` stays null until an upload succeeds; FastAPI then sets it through a DRF endpoint using the caller's JWT, so Django remains the only writer of relational records. `row_count` is read-only in the normal dataset create and update API. A dedicated set-row-count action (added with upload in Phase 2, editor role required) sets it only while it is null and returns 409 once it is set.
+Datasets are immutable once rows are uploaded, because compare joins runs by `row_index`. A second upload to the same dataset returns 409 (dataset versions remain a stretch goal). `Dataset.row_count` stays null until an upload succeeds; FastAPI then sets it through a DRF endpoint using the caller's JWT, so Django remains the only writer of relational records. `row_count` is read-only in the normal dataset create and update API. It is set through `POST /api/records/datasets/{id}/set-row-count/` with body `{"row_count": <int >= 0>}` (editor or owner): the action sets it only while it is null, under `select_for_update` in a transaction, returns the dataset (200), and answers 409 once set, 404 for another organization's dataset, 403 for viewers, and 400 for an invalid body. The dataset representation carries a read-only `organization` id (the project's organization), so FastAPI authorizes from one fetch.
 
 ### Indexes
 
@@ -200,6 +200,8 @@ Datasets are immutable once rows are uploaded, because compare joins runs by `ro
 | `results` | `run_id`, `model_config_id`, `row_index` (unique) | Stream and page one run, and join two runs by row |
 | `results` | `run_id`, `scores.value` | Sort a run worst-first to inspect failures |
 | `dataset_rows` | `dataset_id`, `row_index` (unique) | Read a dataset in order |
+
+`evalcore.ensure_indexes` creates these and is safe to rerun.
 
 ## FastAPI endpoints
 
@@ -450,6 +452,9 @@ Resolved after conversion from the source document. Each is written into the rel
 39. **`baseline_run_id`:** nullable 24-character string holding a run `ObjectId` in hex.
 40. **JWT key mounts:** `records` holds the private and public keys; `api` and `worker` hold only the public key.
 41. **No tenant moves:** existing records cannot change organizations, directly or through reparenting, on any API or admin write path; same-organization edits stay allowed with reference consistency revalidated.
+42. **Set-row-count action:** `POST /api/records/datasets/{id}/set-row-count/` sets `row_count` once while null under `select_for_update`; datasets expose a read-only `organization` id so FastAPI authorizes from one fetch.
+43. **Strict dataset rows:** `input` values keep their JSON type (no coercion); NaN and Infinity, `null` input values, and non-string `expected` are rejected.
+44. **`evalcore.ensure_indexes`:** creates the Mongo indexes and is safe to rerun.
 
 ## Open questions
 

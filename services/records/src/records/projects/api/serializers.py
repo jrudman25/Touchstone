@@ -62,13 +62,20 @@ class PromptVersionSerializer(serializers.ModelSerializer[PromptVersion]):
 
 
 class DatasetSerializer(ModelCleanMixin, serializers.ModelSerializer[Dataset]):
-    """row_count is set only by the upload path, never through this API."""
+    """row_count is set only by the set-row-count action, never through this API."""
 
     project = MemberScopedPrimaryKeyRelatedField(
         organization_lookup="organization", queryset=Project.objects.all()
     )
+    organization = serializers.IntegerField(source="project.organization_id", read_only=True)
 
     class Meta:
         model = Dataset
-        fields = ["id", "project", "name", "row_count"]  # noqa: RUF012
+        fields = ["id", "project", "organization", "name", "row_count"]  # noqa: RUF012
         read_only_fields = ["row_count"]  # noqa: RUF012
+
+
+class DatasetRowCountSerializer(serializers.Serializer[Any]):
+    """Request body for the set-row-count action."""
+
+    row_count = serializers.IntegerField(min_value=0, max_value=2147483647)

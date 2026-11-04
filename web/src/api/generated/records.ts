@@ -116,6 +116,23 @@ export interface paths {
         patch: operations["datasets_partial_update"];
         trace?: never;
     };
+    "/api/records/datasets/{id}/set-row-count/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Set row_count once, while it is null; 409 afterwards. */
+        post: operations["datasets_set_row_count_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/records/memberships/": {
         parameters: {
             query?: never;
@@ -422,12 +439,17 @@ export interface components {
         AccessToken: {
             access: string;
         };
-        /** @description row_count is set only by the upload path, never through this API. */
+        /** @description row_count is set only by the set-row-count action, never through this API. */
         Dataset: {
             readonly id: number;
             project: number;
+            readonly organization: number;
             name: string;
             readonly row_count: number | null;
+        };
+        /** @description Request body for the set-row-count action. */
+        DatasetRowCount: {
+            row_count: number;
         };
         Detail: {
             detail: string;
@@ -616,10 +638,11 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["ScorerConfig"][];
         };
-        /** @description row_count is set only by the upload path, never through this API. */
+        /** @description row_count is set only by the set-row-count action, never through this API. */
         PatchedDataset: {
             readonly id?: number;
             project?: number;
+            readonly organization?: number;
             name?: string;
             readonly row_count?: number | null;
         };
@@ -1036,6 +1059,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Dataset"];
+                };
+            };
+        };
+    };
+    datasets_set_row_count_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this dataset. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatasetRowCount"];
+                "application/x-www-form-urlencoded": components["schemas"]["DatasetRowCount"];
+                "multipart/form-data": components["schemas"]["DatasetRowCount"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dataset"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Detail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Detail"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Detail"];
                 };
             };
         };
