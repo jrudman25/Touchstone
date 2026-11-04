@@ -326,6 +326,7 @@ source = { editable = "services/api" }
 dependencies = [
     { name = "evalcore" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "uvicorn" },
 ]
 
@@ -333,6 +334,7 @@ dependencies = [
 requires-dist = [
     { name = "evalcore", editable = "packages/evalcore" },
     { name = "fastapi", specifier = "==0.159.1" },
+    { name = "httpx", specifier = "==0.28.1" },
     { name = "uvicorn", specifier = "==0.54.0" },
 ]
 

@@ -69,6 +69,12 @@ mypy_path = [
 module = "*.admin"
 disable_error_code = ["type-arg"]
 
+# fake_records is a test helper inside services/api/tests, importable at test
+# time via the pytest pythonpath but not a mypy-visible module.
+[[tool.mypy.overrides]]
+module = "fake_records"
+ignore_missing_imports = true
+
 [tool.django-stubs]
 django_settings_module = "records_test_settings"
 
@@ -83,6 +89,7 @@ addopts = "--import-mode=importlib"
 pythonpath = [
     "packages/evalcore/src",
     "services/api/src",
+    "services/api/tests",
     "services/records/src",
     "services/records/tests",
     "services/worker/src",

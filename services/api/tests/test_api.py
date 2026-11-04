@@ -45,13 +45,6 @@ def _assert_unauthorized(response: Response) -> None:
     assert response.headers["www-authenticate"] == "Bearer"
 
 
-@pytest.fixture()
-def client(rsa_keypair: tuple[str, str]) -> Iterator[TestClient]:
-    _, public = rsa_keypair
-    with TestClient(create_app(Settings(jwt_public_key=public))) as test_client:
-        yield test_client
-
-
 def test_health_no_auth(client: TestClient) -> None:
     response = client.get("/health")
     assert response.status_code == 200
@@ -102,10 +95,9 @@ def test_me_refresh_token_rejected(client: TestClient, rsa_keypair: tuple[str, s
 
 
 @pytest.fixture()
-def role_client(rsa_keypair: tuple[str, str]) -> Iterator[TestClient]:
+def role_client(settings: Settings) -> Iterator[TestClient]:
     """App with a test-only route gated by require_org_role(Role.EDITOR)."""
-    _, public = rsa_keypair
-    app = create_app(Settings(jwt_public_key=public))
+    app = create_app(settings)
     router = APIRouter(prefix="/api/eval/test")
 
     @router.get("/orgs/{organization_id}/editor-only", operation_id="editor_only")

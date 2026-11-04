@@ -231,7 +231,13 @@ Compare rules:
 - A row is a regression if any scorer drops by more than the threshold, or if the candidate errored where the base succeeded.
 - Rows or models present in only one run are reported as unmatched, not as regressions.
 
-Dataset endpoints authorize by fetching the dataset from Django with the caller's JWT, which confirms the dataset exists and belongs to an organization the caller can access. FastAPI reaches Django at the URL in its `RECORDS_BASE_URL` environment variable (`http://localhost:8000` natively, the Compose service name in the `app` profile), not through the browser-facing proxy.
+Dataset endpoints authorize by fetching the dataset from Django with the caller's JWT, which confirms the dataset exists and belongs to an organization the caller can access. FastAPI reaches Django at the URL in its `RECORDS_BASE_URL` environment variable (`http://127.0.0.1:8000` natively, using 127.0.0.1 rather than localhost on Windows; the Compose service name in the `app` profile), not through the browser-facing proxy.
+
+`POST /datasets/{id}/rows` accepts a streamed body with media type `application/x-ndjson` or `application/jsonl` (parameters like `; charset=utf-8` are ignored, case-insensitively; anything else is 415). Upload size is bounded by `DATASET_UPLOAD_MAX_BYTES` (default 50 MiB) and `DATASET_UPLOAD_MAX_ROWS` (default 100000); exceeding either is 413, reported from `Content-Length` up front when declared or as soon as the running byte count passes the limit. Each line is validated as a `DatasetRowInput` (see [`dataset_rows`](#dataset_rows)); errors are reported as `{"detail": "Invalid JSONL upload", "errors": [{"line": n, "message": "..."}]}` with 1-based line numbers that count every line, including blank ones (which are errors), capped at 50 errors. A final trailing newline does not create an extra line; CRLF endings and one leading UTF-8 BOM are tolerated. An empty upload is 400 "Upload is empty". Nothing is written to MongoDB when there is any error or limit violation.
+
+Valid rows are inserted in order with row 0 in the first batch; a duplicate key on row 0 means another upload holds the dataset and the request is 409 with nothing inserted. After the insert, FastAPI sets `row_count` through the DRF set-row-count action; if that fails, the inserted rows are deleted (401/403/409 pass through, anything else becomes 502). A crash between inserting rows and setting `row_count` leaves rows in MongoDB while `row_count` stays null; later uploads then return 409 until those rows are removed manually — there is no cleanup tool yet.
+
+`GET /datasets/{id}/rows` is keyset-paginated: `after` (last seen `row_index`, exclusive) and `limit` (default 50, max 200, 422 above). The response is `{"items": [...], "next_after": n}` where `next_after` is the last returned `row_index` when another page exists, else `null`. While `row_count` is null the endpoint returns empty items without touching MongoDB, so rows of an unfinished or crashed upload are never exposed.
 
 Every endpoint except `GET /health` expects a JWT issued by Django, sent in the `Authorization` header. That includes the stream, which is why the Vue app reads it with `fetch` instead of the native `EventSource`, which cannot set headers. Pydantic models validate request bodies, and the same models define the response shapes the dashboard consumes.
 
@@ -455,6 +461,9 @@ Resolved after conversion from the source document. Each is written into the rel
 42. **Set-row-count action:** `POST /api/records/datasets/{id}/set-row-count/` sets `row_count` once while null under `select_for_update`; datasets expose a read-only `organization` id so FastAPI authorizes from one fetch.
 43. **Strict dataset rows:** `input` values keep their JSON type (no coercion); NaN and Infinity, `null` input values, and non-string `expected` are rejected.
 44. **`evalcore.ensure_indexes`:** creates the Mongo indexes and is safe to rerun.
+45. **Dataset upload:** streamed JSONL (`application/x-ndjson` or `application/jsonl`), strict per-line validation with 1-based line numbers over every line and a 50-error cap; `DATASET_UPLOAD_MAX_BYTES`/`DATASET_UPLOAD_MAX_ROWS` limits return 413; row 0 doubles as the upload lock (duplicate key -> 409).
+46. **Upload compensation:** `row_count` is set through DRF only after the insert; failures delete the inserted rows; a crash in between leaves a null `row_count` over existing rows (manual cleanup for now).
+47. **Row preview paging:** keyset `after` + `limit` (default 50, max 200, 422 above) with a `next_after` cursor; empty items while `row_count` is null.
 
 ## Open questions
 
