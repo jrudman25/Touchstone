@@ -922,6 +922,8 @@ export interface operations {
                 page?: number;
                 /** @description Number of results to return per page. */
                 page_size?: number;
+                /** @description Only datasets in this project. */
+                project?: number;
             };
             header?: never;
             path?: never;
