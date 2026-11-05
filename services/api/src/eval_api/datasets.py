@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from pymongo.asynchronous.database import AsyncDatabase
-from pymongo.errors import BulkWriteError
+from pymongo.errors import BulkWriteError, PyMongoError
 
 from eval_api.dataset_access import DatasetAccess, require_dataset_role
 from eval_api.deps import get_mongo_db, get_records_client, get_settings
@@ -75,6 +75,15 @@ def _is_row_zero_conflict(exc: BulkWriteError) -> bool:
         return False
     errors = details.get("writeErrors") or []
     return len(errors) > 0 and errors[0].get("index") == 0 and errors[0].get("code") == 11000
+
+
+async def _delete_dataset_rows_best_effort(
+    db: AsyncDatabase[dict[str, Any]], dataset_id: int
+) -> None:
+    try:
+        await delete_dataset_rows(db, dataset_id)
+    except PyMongoError:
+        logger.exception("compensation failed: could not delete dataset %s rows", dataset_id)
 
 
 @router.post(
@@ -156,8 +165,8 @@ async def upload_dataset_rows(
         )
     try:
         await insert_dataset_rows(db, dataset_id, parsed.rows)
-    except BulkWriteError as exc:
-        if _is_row_zero_conflict(exc):
+    except PyMongoError as exc:
+        if isinstance(exc, BulkWriteError) and _is_row_zero_conflict(exc):
             logger.info(
                 "upload rejected: dataset %s row 0 already held by another upload", dataset_id
             )
@@ -166,8 +175,8 @@ async def upload_dataset_rows(
                 "Another upload for this dataset is in progress or finished",
             ) from exc
         logger.warning("upload failed: dataset %s insert error, deleting partial rows", dataset_id)
-        await delete_dataset_rows(db, dataset_id)
-        raise
+        await _delete_dataset_rows_best_effort(db, dataset_id)
+        raise _reject(502, "Dataset storage unavailable") from exc
     try:
         await records.set_dataset_row_count(dataset_id, len(parsed.rows), access.authorization)
     except RecordsError as exc:
@@ -176,7 +185,7 @@ async def upload_dataset_rows(
             dataset_id,
             exc.status_code,
         )
-        await delete_dataset_rows(db, dataset_id)
+        await _delete_dataset_rows_best_effort(db, dataset_id)
         if exc.status_code in PASSTHROUGH_STATUSES:
             raise _reject(exc.status_code, exc.detail) from exc
         raise _reject(502, "Records service unavailable") from exc

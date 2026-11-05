@@ -249,6 +249,29 @@ def test_upload_concurrent_upload_is_409_and_keeps_existing_rows(
     assert fake_records.set_row_count_calls == []
 
 
+def test_upload_other_insert_failure_is_502_and_cleans_up(
+    client: TestClient,
+    fake_records: FakeRecords,
+    mongo_db: Database[dict[str, Any]],
+    token: str,
+) -> None:
+    """A duplicate key after row 0: this request holds row 0, so all rows go."""
+    fake_records.add_dataset(DATASET_ID, organization=ORG_ID)
+    mongo_db[DATASET_ROWS].insert_one(
+        {
+            "dataset_id": DATASET_ID,
+            "row_index": 1,
+            "input": {"question": "held"},
+            "expected": None,
+        }
+    )
+    response = _post(client, token, b'{"input": {"a": 1}}\n{"input": {"a": 2}}\n')
+    assert response.status_code == 502
+    assert response.json() == {"detail": "Dataset storage unavailable"}
+    assert _stored_rows(mongo_db) == []
+    assert fake_records.set_row_count_calls == []
+
+
 @pytest.mark.parametrize(
     ("set_status", "expected_status"),
     [(409, 409), (500, 502)],
