@@ -7,8 +7,10 @@ import {
 } from "vue-router";
 
 import { useAuthStore } from "./stores/auth";
+import DatasetView from "./views/DatasetView.vue";
 import HomeView from "./views/HomeView.vue";
 import LoginView from "./views/LoginView.vue";
+import ProjectView from "./views/ProjectView.vue";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -35,6 +37,12 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
   { path: "/", name: "home", component: HomeView },
+  { path: "/projects/:projectId", name: "project", component: ProjectView },
+  {
+    path: "/projects/:projectId/datasets/:datasetId",
+    name: "dataset",
+    component: DatasetView,
+  },
   { path: "/:pathMatch(.*)*", redirect: "/" },
 ];
 

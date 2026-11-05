@@ -148,3 +148,41 @@ section ul {
   flex-direction: column;
   gap: 0.25rem;
 }
+
+a {
+  color: var(--accent);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+input[type="file"] {
+  padding: 0.25rem 0;
+  border: none;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.success {
+  color: #1a7f37;
+}

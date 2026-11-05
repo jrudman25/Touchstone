@@ -1,24 +1,16 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useQuery } from "@tanstack/vue-query";
-import { useRouter } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 
 import { evalClient, recordsClient } from "../api/clients";
+import { useMeQuery } from "../composables/useMe";
 import { useAuthStore } from "../stores/auth";
 
 const auth = useAuthStore();
 const router = useRouter();
 
-const meQuery = useQuery({
-  queryKey: ["records", "me"],
-  queryFn: async () => {
-    const { data, error } = await recordsClient.GET("/api/records/auth/me/");
-    if (error !== undefined || data === undefined) {
-      throw new Error("Failed to load your profile.");
-    }
-    return data;
-  },
-});
+const meQuery = useMeQuery();
 
 const projectsQuery = useQuery({
   queryKey: ["records", "projects"],
@@ -127,7 +119,9 @@ async function signOut() {
             v-for="project in projectsQuery.data.value.results"
             :key="project.id"
           >
-            {{ project.name }}
+            <RouterLink :to="{ name: 'project', params: { projectId: project.id } }">
+              {{ project.name }}
+            </RouterLink>
           </li>
         </ul>
       </template>
