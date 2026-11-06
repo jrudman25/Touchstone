@@ -8,8 +8,9 @@ always server-assigned.
 from django.db import transaction
 from django.db.models import Max
 
+from evalcore.prompts import extract_variables
+
 from .models import PromptTemplate, PromptVersion
-from .variables import extract_variables
 
 
 def create_prompt_version(

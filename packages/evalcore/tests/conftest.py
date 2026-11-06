@@ -7,8 +7,11 @@ from uuid import uuid4
 
 import pymongo
 import pytest
+from arq.connections import RedisSettings
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+
+from evalcore.jobs import redis_settings
 
 
 @pytest.fixture(scope="session")
@@ -22,6 +25,13 @@ def mongo_database() -> Iterator[tuple[str, str]]:
         client.drop_database(name)
     finally:
         client.close()
+
+
+@pytest.fixture(scope="session")
+def arq_settings() -> RedisSettings:
+    """Redis connection settings for tests; pools are created per test."""
+    url = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+    return redis_settings(url)
 
 
 @pytest.fixture(scope="session")

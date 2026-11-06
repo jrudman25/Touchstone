@@ -464,6 +464,12 @@ Resolved after conversion from the source document. Each is written into the rel
 45. **Dataset upload:** streamed JSONL (`application/x-ndjson` or `application/jsonl`), strict per-line validation with 1-based line numbers over every line and a 50-error cap; `DATASET_UPLOAD_MAX_BYTES`/`DATASET_UPLOAD_MAX_ROWS` limits return 413; row 0 doubles as the upload lock (duplicate key -> 409).
 46. **Upload compensation:** `row_count` is set through DRF only after the insert; failures delete the inserted rows; a crash in between leaves a null `row_count` over existing rows (manual cleanup for now).
 47. **Row preview paging:** keyset `after` + `limit` (default 50, max 200, 422 above) with a `next_after` cursor; empty items while `row_count` is null.
+48. **Shared placeholders:** the `{{name}}` pattern and rendering live in `evalcore.prompts`; records depends on evalcore at runtime so every service uses one definition.
+49. **Render formatting:** strings as-is, booleans as `true`/`false`, numbers via JSON; no escaping and no re-rendering of inserted values; all missing names are reported in one error.
+50. **Scorer nulls:** normalization is NFKC + casefold + whitespace collapse; a missing `expected` value or an invalid regex scores `null` with a reason, and nulls are excluded from score means.
+51. **Mock provider:** deterministic per `"{seed}:{model}:{system}:{prompt}"`; canned answers keyed by rendered prompt; `accuracy`, `fail_rate`, and `latency_ms` knobs; word-count `max_tokens` truncation.
+52. **`Run.error`:** the run document carries a nullable `error` string recording why a run failed.
+53. **Snapshot shape:** `prompt` (version id, template id, number, system/body, variables), `models` (model config id, provider id/name/kind, model name, generation settings, context length, prices, limits, base_url, api_key_env, digest), `scorers` (scorer id, name, kind, params), and a `seed`.
 
 ## Open questions
 

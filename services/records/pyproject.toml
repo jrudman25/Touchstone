@@ -8,13 +8,11 @@ dependencies = [
     "djangorestframework==3.18.3",
     "djangorestframework-simplejwt[crypto]==5.5.1",
     "drf-spectacular==0.30.0",
+    "evalcore",
     "psycopg[binary]==3.3.6",
     "uvicorn==0.54.0",
     "whitenoise==6.12.0",
 ]
-
-[dependency-groups]
-dev = ["evalcore"]
 
 [tool.uv.sources]
 evalcore = { workspace = true }

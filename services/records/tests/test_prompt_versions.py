@@ -7,11 +7,11 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connections
 from django.db.models import ProtectedError
 
+from evalcore.prompts import extract_variables
 from records.accounts.models import Organization
 from records.projects.managers import ImmutableRecordError
 from records.projects.models import Project, PromptTemplate, PromptVersion
 from records.projects.services import create_prompt_version
-from records.projects.variables import extract_variables
 
 pytestmark = pytest.mark.django_db
 
