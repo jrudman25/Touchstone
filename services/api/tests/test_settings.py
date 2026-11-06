@@ -23,6 +23,7 @@ def _environ(tmp_path: Path, **overrides: str) -> dict[str, str]:
         "MONGO_URL": "mongodb://127.0.0.1:27017",
         "MONGO_DB": "touchstone_test",
         "RECORDS_BASE_URL": "http://127.0.0.1:8000",
+        "REDIS_URL": "redis://127.0.0.1:6379/0",
     }
     env.update(overrides)
     return env
@@ -38,7 +39,7 @@ def test_load_settings_empty_var() -> None:
         load_settings({"JWT_PUBLIC_KEY_PATH": ""})
 
 
-@pytest.mark.parametrize("missing", ["MONGO_URL", "MONGO_DB", "RECORDS_BASE_URL"])
+@pytest.mark.parametrize("missing", ["MONGO_URL", "MONGO_DB", "RECORDS_BASE_URL", "REDIS_URL"])
 def test_load_settings_missing_required_var(tmp_path: Path, missing: str) -> None:
     env = _environ(tmp_path)
     del env[missing]
@@ -46,7 +47,7 @@ def test_load_settings_missing_required_var(tmp_path: Path, missing: str) -> Non
         load_settings(env)
 
 
-@pytest.mark.parametrize("missing", ["MONGO_URL", "MONGO_DB", "RECORDS_BASE_URL"])
+@pytest.mark.parametrize("missing", ["MONGO_URL", "MONGO_DB", "RECORDS_BASE_URL", "REDIS_URL"])
 def test_load_settings_empty_required_var(tmp_path: Path, missing: str) -> None:
     env = _environ(tmp_path, **{missing: ""})
     with pytest.raises(SettingsError, match=missing):
@@ -76,6 +77,12 @@ def test_load_settings_defaults(tmp_path: Path) -> None:
     settings = load_settings(_environ(tmp_path))
     assert settings.dataset_upload_max_bytes == DEFAULT_DATASET_UPLOAD_MAX_BYTES
     assert settings.dataset_upload_max_rows == DEFAULT_DATASET_UPLOAD_MAX_ROWS
+    assert settings.run_queue_name == "arq:queue"
+
+
+def test_load_settings_queue_name_override(tmp_path: Path) -> None:
+    settings = load_settings(_environ(tmp_path, RUN_QUEUE_NAME="arq:test"))
+    assert settings.run_queue_name == "arq:test"
 
 
 def test_load_settings_custom_limits(tmp_path: Path) -> None:

@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
 import httpx
+from arq import create_pool
 from fastapi import APIRouter, Depends, FastAPI
 from pydantic import BaseModel
 from pymongo import AsyncMongoClient
@@ -12,8 +13,15 @@ from pymongo import AsyncMongoClient
 from eval_api.auth import get_claims
 from eval_api.datasets import router as datasets_router
 from eval_api.records_client import RecordsClient
+from eval_api.runs import router as runs_router
 from eval_api.settings import Settings, load_settings
-from evalcore import AccessClaims, Role, configure_logging, ensure_indexes
+from evalcore import (
+    AccessClaims,
+    Role,
+    configure_logging,
+    ensure_indexes,
+    redis_settings,
+)
 
 
 class HealthResponse(BaseModel):
@@ -43,16 +51,21 @@ def create_app(
         configure_logging()
         resolved = settings if settings is not None else load_settings()
         app.state.settings = resolved
-        mongo_client: AsyncMongoClient[dict[str, Any]] = AsyncMongoClient(resolved.mongo_url)
+        mongo_client: AsyncMongoClient[dict[str, Any]] = AsyncMongoClient(
+            resolved.mongo_url, tz_aware=True
+        )
         app.state.mongo_client = mongo_client
         app.state.mongo_db = mongo_client[resolved.mongo_db]
         await ensure_indexes(app.state.mongo_db)
         records_client = RecordsClient(resolved, transport=records_transport)
         app.state.records_client = records_client
+        redis = await create_pool(redis_settings(resolved.redis_url))
+        app.state.redis = redis
         try:
             yield
         finally:
             await records_client.aclose()
+            await redis.aclose()
             await mongo_client.close()
 
     app = FastAPI(title="Touchstone Eval API", version="0.1.0", lifespan=lifespan)
@@ -69,6 +82,7 @@ def create_app(
 
     app.include_router(router)
     app.include_router(datasets_router)
+    app.include_router(runs_router)
     return app
 
 

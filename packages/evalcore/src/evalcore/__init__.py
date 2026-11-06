@@ -6,6 +6,7 @@ from evalcore.access_tokens import (
     Role,
     verify_access_token,
 )
+from evalcore.cancellation import cancel_key, is_cancel_requested, request_cancel
 from evalcore.dataset_rows import (
     DatasetRow,
     DatasetRowInput,
@@ -34,6 +35,15 @@ from evalcore.run_logging import (
     RunIdFormatter,
     configure_logging,
     run_id_var,
+)
+from evalcore.run_store import (
+    cancel_queued_run,
+    delete_run,
+    get_run,
+    insert_run,
+    list_results,
+    list_runs,
+    upsert_result,
 )
 from evalcore.runs import (
     TERMINAL_STATUSES,
@@ -83,21 +93,31 @@ __all__ = [
     "Score",
     "ScorerSnapshot",
     "Usage",
+    "cancel_key",
+    "cancel_queued_run",
     "compute_cost",
     "configure_logging",
     "delete_dataset_rows",
+    "delete_run",
     "enqueue_run",
     "ensure_indexes",
     "extract_variables",
+    "get_run",
     "insert_dataset_rows",
+    "insert_run",
+    "is_cancel_requested",
     "is_context_limited",
     "list_dataset_rows",
+    "list_results",
+    "list_runs",
     "normalize_text",
     "redis_settings",
     "render_prompt",
     "render_template",
+    "request_cancel",
     "run_id_var",
     "run_job_id",
     "score_rule",
+    "upsert_result",
     "verify_access_token",
 ]

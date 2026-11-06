@@ -2,6 +2,7 @@
 
 from typing import Any, cast
 
+from arq import ArqRedis
 from fastapi import Request
 from pymongo.asynchronous.database import AsyncDatabase
 
@@ -19,3 +20,7 @@ def get_mongo_db(request: Request) -> AsyncDatabase[dict[str, Any]]:
 
 def get_records_client(request: Request) -> RecordsClient:
     return cast(RecordsClient, request.app.state.records_client)
+
+
+def get_redis(request: Request) -> ArqRedis:
+    return cast(ArqRedis, request.app.state.redis)

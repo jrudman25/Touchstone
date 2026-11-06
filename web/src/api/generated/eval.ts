@@ -62,10 +62,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/eval/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Runs
+         * @description Newest-first run history for projects in the caller's organizations.
+         */
+        get: operations["list_runs"];
+        put?: never;
+        /**
+         * Create Run
+         * @description Validate referenced records against Django, snapshot, insert, enqueue.
+         */
+        post: operations["create_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eval/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run Detail */
+        get: operations["get_run"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eval/runs/{run_id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Run Results
+         * @description Keyset-paged results for a run, filterable.
+         */
+        get: operations["list_run_results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eval/runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Cancel Run
+         * @description Cancel a queued run immediately or flag a running one.
+         */
+        post: operations["cancel_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CreateRunRequest */
+        CreateRunRequest: {
+            /** Project Id */
+            project_id: number;
+            /** Prompt Version Id */
+            prompt_version_id: number;
+            /** Dataset Id */
+            dataset_id: number;
+            /** Model Config Ids */
+            model_config_ids: number[];
+            /** Scorer Ids */
+            scorer_ids?: number[];
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+        };
         /**
          * DatasetRow
          * @description The stored ``dataset_rows`` document shape (no ``_id``).
@@ -120,12 +219,217 @@ export interface components {
                 [key: string]: components["schemas"]["Role"];
             };
         };
+        /** ModelSnapshot */
+        ModelSnapshot: {
+            /** Model Config Id */
+            model_config_id: number;
+            /** Provider Id */
+            provider_id: number;
+            /** Provider Name */
+            provider_name: string;
+            /**
+             * Provider Kind
+             * @enum {string}
+             */
+            provider_kind: "mock" | "ollama" | "openai_compatible";
+            /** Model Name */
+            model_name: string;
+            /** Temperature */
+            temperature: number;
+            /** Max Tokens */
+            max_tokens: number;
+            /** Context Length */
+            context_length: number;
+            /** Input Price Per 1K */
+            input_price_per_1k: number;
+            /** Output Price Per 1K */
+            output_price_per_1k: number;
+            /** Max Concurrency */
+            max_concurrency: number;
+            /** Requests Per Minute */
+            requests_per_minute: number | null;
+            /** Base Url */
+            base_url: string;
+            /** Api Key Env */
+            api_key_env: string;
+            /** Digest */
+            digest: string | null;
+        };
+        /** ModelSummary */
+        ModelSummary: {
+            /** Mean Score */
+            mean_score: number | null;
+            /** By Scorer */
+            by_scorer: {
+                [key: string]: number | null;
+            };
+            /** P95 Latency Ms */
+            p95_latency_ms: number | null;
+            /** Cost Usd */
+            cost_usd: number;
+            /** Error Count */
+            error_count: number;
+        };
+        /** PromptSnapshot */
+        PromptSnapshot: {
+            /** Prompt Version Id */
+            prompt_version_id: number;
+            /** Template Id */
+            template_id: number;
+            /** Number */
+            number: number;
+            /** System Message */
+            system_message: string;
+            /** Body */
+            body: string;
+            /** Variables */
+            variables: string[];
+        };
+        /** Result */
+        Result: {
+            /** Id */
+            id: string;
+            /** Run Id */
+            run_id: string;
+            /** Row Index */
+            row_index: number;
+            /** Model Config Id */
+            model_config_id: number;
+            /** Input */
+            input: {
+                [key: string]: string | number | boolean;
+            };
+            /** Expected */
+            expected: string | null;
+            /** Rendered Prompt */
+            rendered_prompt: string;
+            /** Output */
+            output: string | null;
+            usage: components["schemas"]["Usage"] | null;
+            /** Latency Ms */
+            latency_ms: number | null;
+            /** Cost Usd */
+            cost_usd: number | null;
+            /** Error */
+            error: string | null;
+            /** Context Limited */
+            context_limited: boolean;
+            /** Scores */
+            scores: components["schemas"]["Score"][];
+        };
+        /** ResultPage */
+        ResultPage: {
+            /** Items */
+            items: components["schemas"]["Result"][];
+            /** Next After */
+            next_after: string | null;
+        };
         /**
          * Role
          * @description Organization membership roles, ordered weakest to strongest.
          * @enum {string}
          */
         Role: "viewer" | "editor" | "owner";
+        /** Run */
+        Run: {
+            /** Id */
+            id: string;
+            /** Organization Id */
+            organization_id: number;
+            /** Project Id */
+            project_id: number;
+            /** Prompt Version Id */
+            prompt_version_id: number;
+            /** Dataset Id */
+            dataset_id: number;
+            /** Model Config Ids */
+            model_config_ids: number[];
+            /** Scorer Ids */
+            scorer_ids: number[];
+            snapshot: components["schemas"]["RunSnapshot"];
+            status: components["schemas"]["RunStatus"];
+            /** Created By */
+            created_by: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Finished At */
+            finished_at: string | null;
+            totals: components["schemas"]["RunTotals"];
+            /** Summary */
+            summary: {
+                [key: string]: components["schemas"]["ModelSummary"];
+            };
+            /** Error */
+            error?: string | null;
+        };
+        /** RunPage */
+        RunPage: {
+            /** Items */
+            items: components["schemas"]["Run"][];
+            /** Next Before */
+            next_before: string | null;
+        };
+        /** RunSnapshot */
+        RunSnapshot: {
+            prompt: components["schemas"]["PromptSnapshot"];
+            /** Models */
+            models: components["schemas"]["ModelSnapshot"][];
+            /** Scorers */
+            scorers: components["schemas"]["ScorerSnapshot"][];
+            /** Seed */
+            seed: number;
+        };
+        /**
+         * RunStatus
+         * @enum {string}
+         */
+        RunStatus: "queued" | "running" | "finished" | "failed" | "cancelled";
+        /** RunTotals */
+        RunTotals: {
+            /**
+             * Rows
+             * @default 0
+             */
+            rows: number;
+            /**
+             * Done
+             * @default 0
+             */
+            done: number;
+            /**
+             * Failed
+             * @default 0
+             */
+            failed: number;
+        };
+        /** Score */
+        Score: {
+            /** Scorer Id */
+            scorer_id: number;
+            /** Value */
+            value: number | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** ScorerSnapshot */
+        ScorerSnapshot: {
+            /** Scorer Id */
+            scorer_id: number;
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "exact" | "contains" | "regex" | "llm_judge";
+            /** Params */
+            params: {
+                [key: string]: string | number | boolean;
+            };
+        };
         /** UploadErrorResponse */
         UploadErrorResponse: {
             /** Detail */
@@ -139,6 +443,13 @@ export interface components {
             line: number;
             /** Message */
             message: string;
+        };
+        /** Usage */
+        Usage: {
+            /** Input Tokens */
+            input_tokens: number;
+            /** Output Tokens */
+            output_tokens: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -376,6 +687,307 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+        };
+    };
+    list_runs: {
+        parameters: {
+            query: {
+                project_id: number;
+                before?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunPage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+        };
+    };
+    get_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_run_results: {
+        parameters: {
+            query?: {
+                model_config_id?: number | null;
+                scorer_id?: number | null;
+                max_score?: number | null;
+                errors_only?: boolean;
+                after?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultPage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+        };
+    };
+    cancel_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

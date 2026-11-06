@@ -18,6 +18,7 @@ class FakeRecords:
         self.requests: list[httpx.Request] = []
         self.set_row_count_calls: list[tuple[int, dict[str, Any]]] = []
         self.get_bodies: dict[int, dict[str, Any]] = {}
+        self.generic_bodies: dict[str, dict[int, dict[str, Any]]] = {}
         self.get_statuses: dict[int, int] = {}
         self.set_row_count_status = 200
         self.connect_error = False
@@ -39,11 +40,24 @@ class FakeRecords:
             "row_count": row_count,
         }
 
+    def add(self, collection: str, item_id: int, body: dict[str, Any]) -> None:
+        self.generic_bodies.setdefault(collection, {})[item_id] = body
+
     def handler(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
         if self.connect_error:
             raise httpx.ConnectError("cannot connect", request=request)
         path = request.url.path
+        generic = re.fullmatch(
+            r"/api/records/(projects|prompt-versions|prompt-templates|models|providers|scorers)/(\d+)/",
+            path,
+        )
+        if request.method == "GET" and generic:
+            collection, item_id = generic.group(1), int(generic.group(2))
+            body = self.generic_bodies.get(collection, {}).get(item_id)
+            if body is None:
+                return httpx.Response(404, json={"detail": "Not found."})
+            return httpx.Response(200, json=body)
         match = re.fullmatch(r"/api/records/datasets/(\d+)/", path)
         if request.method == "GET" and match:
             dataset_id = int(match.group(1))

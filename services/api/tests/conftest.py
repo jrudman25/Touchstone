@@ -61,6 +61,8 @@ def settings(rsa_keypair: tuple[str, str], mongo_url_db: tuple[str, str]) -> Set
         mongo_url=url,
         mongo_db=name,
         records_base_url="http://records.test",
+        redis_url=os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0"),
+        run_queue_name=f"arq:test:{uuid4().hex[:8]}",
     )
 
 
