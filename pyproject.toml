@@ -75,6 +75,12 @@ disable_error_code = ["type-arg"]
 module = "fake_records"
 ignore_missing_imports = true
 
+# worker_fixtures is the worker tests' shared helper module, importable at
+# test time via the pytest pythonpath but not a mypy-visible module.
+[[tool.mypy.overrides]]
+module = "worker_fixtures"
+ignore_missing_imports = true
+
 [tool.django-stubs]
 django_settings_module = "records_test_settings"
 
@@ -83,6 +89,7 @@ testpaths = [
     "scripts/tests",
     "services/api/tests",
     "services/records/tests",
+    "services/worker/tests",
     "packages/evalcore/tests",
 ]
 addopts = "--import-mode=importlib"
@@ -93,6 +100,7 @@ pythonpath = [
     "services/records/src",
     "services/records/tests",
     "services/worker/src",
+    "services/worker/tests",
     "scripts",
 ]
 DJANGO_SETTINGS_MODULE = "records_test_settings"

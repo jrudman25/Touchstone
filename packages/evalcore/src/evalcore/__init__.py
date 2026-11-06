@@ -30,6 +30,7 @@ from evalcore.providers import (
     ProviderClient,
     ProviderError,
 )
+from evalcore.run_events import events_key, expire_events, publish_event
 from evalcore.run_logging import (
     RunIdFilter,
     RunIdFormatter,
@@ -39,12 +40,18 @@ from evalcore.run_logging import (
 from evalcore.run_store import (
     cancel_queued_run,
     delete_run,
+    existing_row_indexes,
+    finalize_run,
     get_run,
+    inc_totals,
     insert_run,
     list_results,
+    list_running_runs,
     list_runs,
+    mark_running,
     upsert_result,
 )
+from evalcore.run_summary import recompute_run_totals_and_summary
 from evalcore.runs import (
     TERMINAL_STATUSES,
     ModelSnapshot,
@@ -101,16 +108,25 @@ __all__ = [
     "delete_run",
     "enqueue_run",
     "ensure_indexes",
+    "events_key",
+    "existing_row_indexes",
+    "expire_events",
     "extract_variables",
+    "finalize_run",
     "get_run",
+    "inc_totals",
     "insert_dataset_rows",
     "insert_run",
     "is_cancel_requested",
     "is_context_limited",
     "list_dataset_rows",
     "list_results",
+    "list_running_runs",
     "list_runs",
+    "mark_running",
     "normalize_text",
+    "publish_event",
+    "recompute_run_totals_and_summary",
     "redis_settings",
     "render_prompt",
     "render_template",

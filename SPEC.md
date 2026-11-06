@@ -264,6 +264,9 @@ Lifecycle rules:
 - **Rendering:** plain `{{name}}` substitution (whitespace inside the braces allowed) in both `system_message` and `body`, with no logic, filters, or escaping. A missing variable is an error, never an empty string.
 - **Crash recovery:** arq retries the job, and a retried job skips rows that already have a result for that model (the unique index makes this safe). On worker startup, a run left `running` whose arq job is neither queued nor in progress is marked `failed`; runs with a pending retry are left alone.
 - **Errors:** a generation error is stored on the result's `error` field, counted in `totals.failed`, and excluded from score means.
+- **Progress counters:** `totals.done` counts every stored result including errored ones; `totals.failed` is the errored subset. Increments happen per newly inserted result and are recomputed authoritatively from `results` when the run finishes, so a crashed increment cannot corrupt the outcome.
+- **Events:** the worker appends to `run:{id}:events` (XADD, `MAXLEN ~` `RUN_EVENTS_MAXLEN`, default 10000) with `type` in `status` (`{"status", "error"}`), `result` (`{"result", "totals"}`), and `summary` (`{"totals", "summary"}`), and expires the stream `RUN_EVENTS_TTL_SECONDS` (default 3600) after finalization.
+- **Retries and crashes:** results upsert on the unique `(run_id, model_config_id, row_index)` key and stored rows are skipped, so a retried job resumes where it stopped. Unexpected failures mark the run `failed` with a short `error` rather than raising, so arq never retries them; after a hard worker crash, arq retries only once the in-progress key expires — up to `WORKER_JOB_TIMEOUT_SECONDS` (default 7200). Worker startup also fails any `running` run whose job no longer exists in the queue. `rendered_prompt` stores the rendered body only; the system message lives in the snapshot.
 - **Unparseable judge output:** if the judge's reply is not valid JSON, the score is stored as `value: null` with the raw text as `reason`, and is excluded from means.
 
 The four scorer kinds (`exact`, `contains`, `regex`, `llm_judge`) produce values from 0 to 1. Latency, token usage, and cost are separate measurements, not scores.
@@ -480,6 +483,11 @@ Resolved after conversion from the source document. Each is written into the rel
 57. **Run paging:** list uses a `next_before` run-id keyset on (`created_at`, `_id`) descending; results use an `after` pair `"<model_config_id>:<row_index>"` on the unique index order.
 58. **Cancel flag:** a queued run is cancelled atomically in Mongo; a running run only gets the `run:{id}:cancel` Redis key (24 h TTL) and the worker finalizes; failed flag writes are 502 for running runs and logged-and-200 for queued ones.
 59. **Enqueue atomicity:** the run document is deleted whenever `enqueue_run` fails or returns a duplicate, so no queued run exists without a queued job; `RUN_QUEUE_NAME` selects the arq queue.
+60. **`totals.done` semantics:** counts all completed results including errored ones; `failed` is the errored subset, and both are recomputed from `results` at run end rather than trusted from increments.
+61. **Run events:** `status`, `result`, and `summary` entries on `run:{id}:events` via XADD `MAXLEN ~` (`RUN_EVENTS_MAXLEN`), expired `RUN_EVENTS_TTL_SECONDS` after the run finishes.
+62. **No retry on failure:** an unexpected worker exception finalizes the run `failed` without re-raising; arq-side retry happens only after a crash, when the in-progress key outlives `WORKER_JOB_TIMEOUT_SECONDS` (default 7200). Startup recovery fails `running` runs with no live job.
+63. **Rendered prompt:** results store the rendered body in `rendered_prompt`; the rendered system message is reproducible from the snapshot and is not duplicated per result.
+64. **Redis memory:** Compose Redis runs `--maxmemory 200mb --maxmemory-policy noeviction` so job/event writes fail loudly instead of silently evicting queue state.
 
 ## Open questions
 

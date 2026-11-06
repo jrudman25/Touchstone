@@ -12,7 +12,7 @@ from pymongo import ASCENDING, DESCENDING, ReturnDocument
 from pymongo.asynchronous.database import AsyncDatabase
 
 from evalcore.mongo import RESULTS, RUNS
-from evalcore.runs import Result, Run, RunStatus
+from evalcore.runs import Result, Run, RunStatus, RunTotals
 
 
 def _from_mongo(doc: dict[str, Any]) -> Run:
@@ -99,8 +99,12 @@ async def cancel_queued_run(
     return _from_mongo(doc) if doc is not None else None
 
 
-async def upsert_result(db: AsyncDatabase[dict[str, Any]], result_fields: dict[str, Any]) -> None:
-    """Upsert a result keyed by (run_id, model_config_id, row_index)."""
+async def upsert_result(db: AsyncDatabase[dict[str, Any]], result_fields: dict[str, Any]) -> bool:
+    """Upsert a result keyed by (run_id, model_config_id, row_index).
+
+    Returns True when a new document was inserted (retry-safe callers use
+    it to increment totals only once per result).
+    """
     doc = dict(result_fields)
     run_oid = _object_id(str(doc["run_id"]))
     key = {
@@ -110,7 +114,83 @@ async def upsert_result(db: AsyncDatabase[dict[str, Any]], result_fields: dict[s
     }
     doc["run_id"] = key["run_id"]
     doc.pop("_id", None)
-    await db[RESULTS].update_one(key, {"$set": doc}, upsert=True)
+    outcome = await db[RESULTS].update_one(key, {"$set": doc}, upsert=True)
+    return outcome.upserted_id is not None
+
+
+async def existing_row_indexes(
+    db: AsyncDatabase[dict[str, Any]], run_id: str, model_config_id: int
+) -> set[int]:
+    """Row indexes that already have a result for this run and model."""
+    run_oid = _object_id(run_id)
+    if run_oid is None:
+        return set()
+    cursor = db[RESULTS].find(
+        {"run_id": run_oid, "model_config_id": model_config_id}, {"row_index": 1}
+    )
+    return {doc["row_index"] async for doc in cursor}
+
+
+async def inc_totals(
+    db: AsyncDatabase[dict[str, Any]], run_id: str, *, done: int, failed: int
+) -> None:
+    """Increment the stored progress counters."""
+    run_oid = _object_id(run_id)
+    if run_oid is None:
+        return
+    await db[RUNS].update_one(
+        {"_id": run_oid}, {"$inc": {"totals.done": done, "totals.failed": failed}}
+    )
+
+
+async def mark_running(db: AsyncDatabase[dict[str, Any]], run_id: str) -> Run | None:
+    """Atomically move queued -> running (also succeeds when already running)."""
+    run_oid = _object_id(run_id)
+    if run_oid is None:
+        return None
+    doc = await db[RUNS].find_one_and_update(
+        {
+            "_id": run_oid,
+            "status": {"$in": [RunStatus.QUEUED.value, RunStatus.RUNNING.value]},
+        },
+        {"$set": {"status": RunStatus.RUNNING.value}},
+        return_document=ReturnDocument.AFTER,
+    )
+    return _from_mongo(doc) if doc is not None else None
+
+
+async def finalize_run(
+    db: AsyncDatabase[dict[str, Any]],
+    run_id: str,
+    *,
+    status: RunStatus,
+    error: str | None,
+    totals: RunTotals,
+    summary: dict[str, Any],
+    now: datetime,
+) -> None:
+    """Write the terminal status, totals, and summary in one update."""
+    run_oid = _object_id(run_id)
+    if run_oid is None:
+        return
+    await db[RUNS].update_one(
+        {"_id": run_oid},
+        {
+            "$set": {
+                "status": status.value,
+                "error": error,
+                "totals": totals.model_dump(),
+                "summary": {k: v.model_dump() for k, v in summary.items()},
+                "finished_at": now,
+            }
+        },
+    )
+
+
+async def list_running_runs(db: AsyncDatabase[dict[str, Any]]) -> list[Run]:
+    """All runs still marked running (stale-job recovery scans these)."""
+    cursor = db[RUNS].find({"status": RunStatus.RUNNING.value})
+    return [_from_mongo(doc) async for doc in cursor]
 
 
 def _result_from_mongo(doc: dict[str, Any]) -> Result:

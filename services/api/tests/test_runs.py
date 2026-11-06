@@ -2,8 +2,8 @@
 
 import asyncio
 import time
-from datetime import UTC, datetime
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from typing import Any, cast
 
 import jwt
