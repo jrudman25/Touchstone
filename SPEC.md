@@ -488,6 +488,10 @@ Resolved after conversion from the source document. Each is written into the rel
 62. **No retry on failure:** an unexpected worker exception finalizes the run `failed` without re-raising; arq-side retry happens only after a crash, when the in-progress key outlives `WORKER_JOB_TIMEOUT_SECONDS` (default 7200). Startup recovery fails `running` runs with no live job.
 63. **Rendered prompt:** results store the rendered body in `rendered_prompt`; the rendered system message is reproducible from the snapshot and is not duplicated per result.
 64. **Redis memory:** Compose Redis runs `--maxmemory 200mb --maxmemory-policy noeviction` so job/event writes fail loudly instead of silently evicting queue state.
+65. **Run-history aggregation:** the list row aggregates multi-model summaries client-side: mean of non-null `mean_score`s, max `p95_latency_ms`, and summed `cost_usd`, showing "-" when a value is absent.
+66. **Polling until SSE:** run pages poll every 2 s and the history every 3 s while any visible run is queued or running; SSE on the events stream replaces this in Phase 3.
+67. **List filter params:** records list filters live in `OrganizationScopedViewSet.filter_params`; `RecordsAutoSchema` documents them as integer query parameters automatically on the list action.
+68. **seed_dev records:** the dev seed creates a "Demo QA" prompt template with one version and "Exact match"/"Contains" scorers so a mock run works end to end on a fresh database.
 
 ## Open questions
 
