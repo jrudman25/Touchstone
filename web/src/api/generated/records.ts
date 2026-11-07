@@ -922,7 +922,7 @@ export interface operations {
                 page?: number;
                 /** @description Number of results to return per page. */
                 page_size?: number;
-                /** @description Only datasets in this project. */
+                /** @description Only records with this project id. */
                 project?: number;
             };
             header?: never;
@@ -1130,6 +1130,8 @@ export interface operations {
     memberships_list: {
         parameters: {
             query?: {
+                /** @description Only records with this organization id. */
+                organization?: number;
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 /** @description Number of results to return per page. */
@@ -1282,6 +1284,8 @@ export interface operations {
                 page?: number;
                 /** @description Number of results to return per page. */
                 page_size?: number;
+                /** @description Only records with this provider id. */
+                provider?: number;
             };
             header?: never;
             path?: never;
@@ -1528,6 +1532,8 @@ export interface operations {
     projects_list: {
         parameters: {
             query?: {
+                /** @description Only records with this organization id. */
+                organization?: number;
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 /** @description Number of results to return per page. */
@@ -1680,6 +1686,8 @@ export interface operations {
                 page?: number;
                 /** @description Number of results to return per page. */
                 page_size?: number;
+                /** @description Only records with this project id. */
+                project?: number;
             };
             header?: never;
             path?: never;
@@ -1828,6 +1836,8 @@ export interface operations {
                 page?: number;
                 /** @description Number of results to return per page. */
                 page_size?: number;
+                /** @description Only records with this template id. */
+                template?: number;
             };
             header?: never;
             path?: never;
@@ -1895,6 +1905,8 @@ export interface operations {
     providers_list: {
         parameters: {
             query?: {
+                /** @description Only records with this organization id. */
+                organization?: number;
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 /** @description Number of results to return per page. */
@@ -2047,6 +2059,8 @@ export interface operations {
                 page?: number;
                 /** @description Number of results to return per page. */
                 page_size?: number;
+                /** @description Only records with this project id. */
+                project?: number;
             };
             header?: never;
             path?: never;

@@ -1,10 +1,10 @@
 """Viewsets for projects, prompt templates/versions, and datasets."""
 
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from django.db import transaction
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins
 from rest_framework.decorators import action
 from rest_framework.request import Request
@@ -60,16 +60,6 @@ class DatasetViewSet(OrganizationScopedModelViewSet):
     serializer_class = DatasetSerializer
     organization_lookup = "project__organization"
     filter_params: ClassVar[dict[str, str]] = {"project": "project_id"}
-
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "project", OpenApiTypes.INT, description="Only datasets in this project."
-            )
-        ]
-    )
-    def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        return super().list(request, *args, **kwargs)
 
     @extend_schema(
         request=DatasetRowCountSerializer,
