@@ -11,8 +11,9 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from records.accounts.models import Membership, Organization, User
-from records.projects.models import Project
-from records.providers.models import ModelConfig, ProviderConfig
+from records.projects.models import Project, PromptTemplate
+from records.projects.services import create_prompt_version
+from records.providers.models import ModelConfig, ProviderConfig, ScorerConfig
 
 
 class Command(BaseCommand):
@@ -97,3 +98,30 @@ class Command(BaseCommand):
             self.stdout.write(
                 f"{'created' if model_created else 'exists'} model {model.model_name}"
             )
+
+            template, template_created = PromptTemplate.objects.get_or_create(
+                project=project, name="Demo QA"
+            )
+            self.stdout.write(
+                f"{'created' if template_created else 'exists'} template {template.name}"
+            )
+            if not template.versions.exists():
+                version = create_prompt_version(
+                    template=template,
+                    system_message="Answer with just the answer.",
+                    body="{{question}}",
+                )
+                self.stdout.write(f"created version {version.number}")
+            else:
+                self.stdout.write("exists version 1")
+
+            for scorer_name, kind in (
+                ("Exact match", ScorerConfig.Kind.EXACT),
+                ("Contains", ScorerConfig.Kind.CONTAINS),
+            ):
+                scorer, scorer_created = ScorerConfig.objects.get_or_create(
+                    project=project, name=scorer_name, defaults={"kind": kind, "params": {}}
+                )
+                self.stdout.write(
+                    f"{'created' if scorer_created else 'exists'} scorer {scorer.name}"
+                )

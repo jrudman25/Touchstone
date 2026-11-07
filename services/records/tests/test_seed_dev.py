@@ -98,3 +98,24 @@ def test_existing_user_gets_staff_and_superuser(
     assert user.is_staff
     assert user.is_superuser
     assert user.check_password("pw-keep")
+
+
+def test_seed_creates_demo_prompt_and_scorers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from records.projects.models import PromptVersion
+    from records.providers.models import ScorerConfig
+
+    _set_credentials(monkeypatch)
+    _seed()
+    _seed()  # second run must stay idempotent
+
+    template = Project.objects.get(name="Demo project").prompt_templates.get(name="Demo QA")
+    versions = list(PromptVersion.objects.filter(template=template))
+    assert len(versions) == 1
+    assert versions[0].body == "{{question}}"
+    assert versions[0].variables == ["question"]
+
+    scorers = ScorerConfig.objects.filter(project=template.project)
+    assert {s.name for s in scorers} == {"Exact match", "Contains"}
+    assert len(scorers) == 2
