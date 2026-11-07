@@ -94,7 +94,7 @@ Users are a custom user model (subclass of `AbstractUser`) from the first migrat
 `ScorerConfig.params` is validated per kind, and unknown keys are rejected:
 
 - `exact`, `contains`, `regex`: `{}`. The expected substring or regex pattern comes from each dataset row's `expected` value, not from params.
-- `llm_judge`: `{"rubric": str, "judge_prompt": str, "judge_model_config_id": int}`, all required. `judge_prompt` pins the judge prompt in the config; `judge_model_config_id` must reference a `ModelConfig` whose provider belongs to the scorer's organization.
+- `llm_judge`: `{"rubric": str, "judge_prompt": str, "judge_model_config_id": int}`, all required. `judge_prompt` pins the judge prompt in the config and is rendered with the same `{{name}}` substitution, with the variables `rubric`, `input` (the row input as compact JSON), `expected` (empty string when absent), and `output`; `judge_model_config_id` must reference a `ModelConfig` whose provider belongs to the scorer's organization.
 
 Prompt versions are immutable once created. Every persisted `PromptVersion` field is set at creation and never changes through any supported write path: the API is create and read only, admin presents saved versions as view-only (a new version is created through the normal create path), and model `save`/`delete` plus queryset `update`, `bulk_update`, and `delete` reject changes to existing rows. `PromptVersion.template` uses `on_delete=PROTECT`, so deleting a template, project, or organization cannot cascade away saved versions. This policy covers the ORM, admin, and API paths; it does not require a database trigger and makes no claim about raw SQL.
 
@@ -492,7 +492,12 @@ Resolved after conversion from the source document. Each is written into the rel
 66. **Polling until SSE:** run pages poll every 2 s and the history every 3 s while any visible run is queued or running; SSE on the events stream replaces this in Phase 3.
 67. **List filter params:** records list filters live in `OrganizationScopedViewSet.filter_params`; `RecordsAutoSchema` documents them as integer query parameters automatically on the list action.
 68. **seed_dev records:** the dev seed creates a "Demo QA" prompt template with one version and "Exact match"/"Contains" scorers so a mock run works end to end on a fresh database.
+69. **Provider HTTP client:** Ollama and `openai_compatible` providers are called through the OpenAI-compatible chat completions API with `httpx` (already a dependency), not the `openai` SDK. Hosted keys are read at call time from the variable named in `api_key_env`.
+70. **Provider retries:** 429, 502, 503, 504, and connection errors retry up to 5 attempts with exponential backoff from 1 s doubling to a 30 s cap, with jitter, honoring `Retry-After` when present. Other 4xx responses fail the row immediately and are stored on the result's `error`.
+71. **SSE transport:** `GET /runs/{id}/stream` uses FastAPI's `StreamingResponse` with `text/event-stream`; no `sse-starlette` dependency.
+72. **Judge reply contract:** the judge runs at temperature 0 and must reply with a JSON object `{"score": number, "reason": string}`. A reply that is not valid JSON, lacks either key, or has a score outside 0 to 1 is stored as `value: null` with the raw reply as `reason` and is excluded from means.
+73. **Phase 3 split:** real providers and the metadata client in `evalcore`; `POST /runs` accepting real providers and judge scorers (digest and judge snapshots); the worker judge pass; the SSE stream with reset handling; then the live run page, latency and cost charts, and a live Ollama check on the GPU desktop. Everything before the live check is built and tested against the mock provider and fake HTTP servers.
 
 ## Open questions
 
-- **Mongo cleanup on delete:** `dataset_rows` (and later run data) are not removed when a dataset, project, or organization is deleted in Django. Suggested default: a cleanup command that deletes Mongo documents whose dataset id no longer exists in Django, built alongside runs later in Phase 2.
+- **Mongo cleanup on delete:** `dataset_rows` and run data are not removed when a dataset, project, or organization is deleted in Django. Suggested default: a cleanup command that deletes Mongo documents whose dataset id no longer exists in Django. Deferred to Phase 4.
