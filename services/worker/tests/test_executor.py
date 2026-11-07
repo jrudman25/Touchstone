@@ -13,6 +13,7 @@ from evalcore import (
     RUNS,
     GenerationRequest,
     MockProvider,
+    cancel_key,
     events_key,
     is_cancel_requested,
     request_cancel,
@@ -163,9 +164,18 @@ def test_cancelled_while_queued_does_nothing(
 ) -> None:
     run_id = setup_two_model_run(mongo_db)
     mongo_db[RUNS].update_one({}, {"$set": {"status": "cancelled"}})
+    import redis as sync_redis
+
+    key = cancel_key(run_id)
+    sync_redis.from_url(  # type: ignore[no-untyped-call]
+        worker_settings.redis_url
+    ).set(key, b"1")
     run_exec(make_ctx(worker_settings, mongo_url_db), run_id)
     assert mongo_db[RESULTS].count_documents({}) == 0
     assert mongo_db[RUNS].find_one()["status"] == "cancelled"  # type: ignore[index]
+    assert not sync_redis.from_url(  # type: ignore[no-untyped-call]
+        worker_settings.redis_url
+    ).exists(key)
 
 
 def test_cancel_flag_before_start(

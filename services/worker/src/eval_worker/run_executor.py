@@ -127,6 +127,7 @@ async def _execute(
         return
     if run.status in TERMINAL_STATUSES:
         logger.info("run already %s; nothing to do", run.status.value)
+        await redis.delete(cancel_key(run_id))
         return
     maxlen = settings.events_maxlen
     ttl = settings.events_ttl_seconds
