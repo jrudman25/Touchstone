@@ -8,9 +8,11 @@ import {
 
 import { useAuthStore } from "./stores/auth";
 import DatasetView from "./views/DatasetView.vue";
+import NewRunView from "./views/NewRunView.vue";
 import HomeView from "./views/HomeView.vue";
 import LoginView from "./views/LoginView.vue";
 import ProjectView from "./views/ProjectView.vue";
+import RunView from "./views/RunView.vue";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -38,6 +40,16 @@ const routes: RouteRecordRaw[] = [
   },
   { path: "/", name: "home", component: HomeView },
   { path: "/projects/:projectId", name: "project", component: ProjectView },
+  {
+    path: "/projects/:projectId/runs/new",
+    name: "run-new",
+    component: NewRunView,
+  },
+  {
+    path: "/projects/:projectId/runs/:runId",
+    name: "run",
+    component: RunView,
+  },
   {
     path: "/projects/:projectId/datasets/:datasetId",
     name: "dataset",

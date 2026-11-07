@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { RouterLink, useRoute } from "vue-router";
 
-import { recordsClient } from "../api/clients";
+import { evalClient, recordsClient } from "../api/clients";
+import type { components as evalComponents } from "../api/generated/eval";
 import type { components } from "../api/generated/records";
 import { canWrite, roleIn, useMeQuery } from "../composables/useMe";
 
@@ -38,6 +39,51 @@ const projectQuery = useQuery({
     return data;
   },
 });
+
+const runsQuery = useInfiniteQuery({
+  queryKey: computed(() => ["eval", "runs", "project", projectId.value]),
+  enabled: computed(() => projectId.value !== null),
+  initialPageParam: null as string | null,
+  getNextPageParam: (last: evalComponents["schemas"]["RunPage"]) => last.next_before,
+  refetchInterval: (query) =>
+    query.state.data?.pages
+      .flatMap((page) => page.items)
+      .some((run) => ["queued", "running"].includes(run.status))
+      ? 3000
+      : false,
+  queryFn: async ({ pageParam }) => {
+    const id = projectId.value;
+    if (id === null) {
+      throw new Error("Project not found.");
+    }
+    const { data, error } = await evalClient.GET("/api/eval/runs", {
+      params: {
+        query: { project_id: id, limit: 20, ...(pageParam ? { before: pageParam } : {}) },
+      },
+    });
+    if (error) throw error;
+    return data;
+  },
+});
+
+const allRuns = computed(
+  () => runsQuery.data.value?.pages.flatMap((page) => page.items) ?? [],
+);
+
+function runAgg(run: evalComponents["schemas"]["Run"]) {
+  const entries = Object.values(run.summary);
+  const means = entries
+    .map((s) => s.mean_score)
+    .filter((v): v is number => v !== null);
+  const p95s = entries
+    .map((s) => s.p95_latency_ms)
+    .filter((v): v is number => v !== null);
+  return {
+    mean: means.length ? (means.reduce((a, b) => a + b) / means.length).toFixed(2) : "-",
+    p95: p95s.length ? String(Math.max(...p95s)) : "-",
+    cost: entries.reduce((a, s) => a + s.cost_usd, 0).toFixed(4),
+  };
+}
 
 const datasetsQuery = useQuery({
   queryKey: computed(() => ["records", "datasets", "project", projectId.value]),
@@ -153,6 +199,80 @@ function submitCreate() {
         {{ projectQuery.error.value?.message ?? "Failed to load the project." }}
       </p>
       <template v-else-if="projectQuery.data.value">
+        <section>
+          <div class="section-header">
+            <h2>Runs</h2>
+            <RouterLink
+              v-if="canCreate"
+              :to="{ name: 'run-new', params: { projectId } }"
+            >
+              New run
+            </RouterLink>
+          </div>
+          <p v-if="runsQuery.isPending.value">
+            Loading runs...
+          </p>
+          <p
+            v-else-if="runsQuery.isError.value"
+            class="error"
+            role="alert"
+          >
+            Failed to load runs.
+          </p>
+          <p
+            v-else-if="!allRuns.length"
+            class="muted"
+          >
+            No runs yet.
+          </p>
+          <table v-else>
+            <thead>
+              <tr>
+                <th>Status</th><th>Prompt version</th><th>Models</th>
+                <th>Mean score</th><th>p95 ms</th><th>Cost</th><th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="run in allRuns"
+                :key="run.id"
+              >
+                <td>
+                  <span
+                    class="status-badge"
+                    :data-status="run.status"
+                  >{{ run.status }}</span>
+                </td>
+                <td>
+                  <RouterLink :to="{ name: 'run', params: { projectId, runId: run.id } }">
+                    v{{ run.snapshot.prompt.number }}
+                  </RouterLink>
+                </td>
+                <td>{{ run.snapshot.models.map((m) => m.model_name).join(", ") }}</td>
+                <td>{{ runAgg(run).mean }}</td>
+                <td>{{ runAgg(run).p95 }}</td>
+                <td>{{ runAgg(run).cost }}</td>
+                <td>{{ new Date(run.created_at).toLocaleString() }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p
+            v-if="runsQuery.isFetchNextPageError.value"
+            class="error"
+            role="alert"
+          >
+            Failed to load more runs.
+          </p>
+          <button
+            v-if="runsQuery.hasNextPage.value"
+            type="button"
+            :disabled="runsQuery.isFetchingNextPage.value"
+            @click="runsQuery.fetchNextPage()"
+          >
+            Load more
+          </button>
+        </section>
+
         <section>
           <h2>Datasets</h2>
           <p v-if="datasetsQuery.isPending.value">

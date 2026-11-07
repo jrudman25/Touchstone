@@ -186,3 +186,19 @@ th {
 .success {
   color: #1a7f37;
 }
+
+.status-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.85em;
+  background: var(--muted-bg, #eee);
+}
+.status-badge[data-status="finished"] { background: #d4edda; }
+.status-badge[data-status="failed"],
+.status-badge[data-status="cancelled"] { background: #f8d7da; }
+.status-badge[data-status="running"] { background: #cce5ff; }
+.section-header { display: flex; align-items: baseline; gap: 1rem; }
+.facts dt { font-weight: 600; }
+.facts dd { margin: 0 0 0.25rem; }
+.filters { display: flex; gap: 1rem; align-items: center; margin-bottom: 0.5rem; }
+.output-cell pre { max-height: 6rem; overflow: auto; margin: 0; white-space: pre-wrap; }
